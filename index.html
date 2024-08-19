@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charts Example</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+  }
+  .header img {
+    height: 70px;
+    margin-right: 20px;
+  }
+  .header button {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .chart-card {
+    width: 90%;
+    max-width: 1000px;
+    margin: 10px auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .chart-container {
+    padding: 20px;
+  }
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display: flex; align-items: center;">
+    <img src="Logo.png" alt="Logo">
+    <h2>Politeknik Negeri Fakfak</h2>
+  </div>
+  <button onclick="deleteData()">Hapus</button>
+</div>
+
+<div class="chart-card">
+  <div class="chart-container">
+    <canvas id="chartTempHum"></canvas>
+  </div>
+</div>
+
+<script>
+  let chart; // Variabel untuk menyimpan chart instance
+
+  // Fungsi untuk mengambil data dan memperbarui chart
+  function fetchDataAndUpdateChart() {
+    fetch('https://esp32-suhu-kelembaban-default-rtdb.asia-southeast1.firebasedatabase.app/data_sensor.json?auth=BTv3Y4rvcWjHo47yUzePGIKKSGfX3ncW47A6rr0m')
+      .then(response => response.json())
+      .then(data => {
+        const xValues = Object.values(data).map(entry => entry.db_jam);
+        const temperatures = Object.values(data).map(entry => entry.db_suhu);
+        const humidities = Object.values(data).map(entry => entry.db_kelembaban);
+
+        if (chart) {
+          // Jika chart sudah ada, update datanya
+          chart.data.labels = xValues;
+          chart.data.datasets[0].data = temperatures;
+          chart.data.datasets[1].data = humidities;
+          chart.update();
+        } else {
+          // Jika chart belum ada, buat chart baru
+          chart = new Chart("chartTempHum", {
+            type: "line",
+            data: {
+              labels: xValues,
+              datasets: [{ 
+                label: 'Suhu',
+                data: temperatures,
+                borderColor: "green",
+                fill: false
+              }, { 
+                label: 'Kelembaban',
+                data: humidities,
+                borderColor: "blue",
+                fill: false
+              }]
+            },
+            options: {
+              title: {
+                display: true,
+                text: 'Data Suhu dan Kelembaban',
+                fontSize: 18
+              },
+              legend: {
+                display: true
+              }
+            }
+          });
+        }
+      })
+      .catch(error => console.error('Error fetching the data:', error));
+  }
+
+  // Panggil fetchDataAndUpdateChart pertama kali untuk membuat chart
+  fetchDataAndUpdateChart();
+
+  // Set interval untuk memperbarui chart setiap 1 detik
+  setInterval(fetchDataAndUpdateChart, 1000);
+
+  // Fungsi untuk menghapus data pada route tertentu dengan mengatur nilainya menjadi false
+  function deleteData() {
+    const url = 'https://esp32-suhu-kelembaban-default-rtdb.asia-southeast1.firebasedatabase.app/.json?auth=BTv3Y4rvcWjHo47yUzePGIKKSGfX3ncW47A6rr0m';
+    
+    fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "data_sensor": false
+      })
+    })
+    .then(response => {
+      if (response.ok) {
+        alert('Data berhasil dihapus!');
+      } else {
+        alert('Gagal menghapus data!');
+      }
+    })
+    .catch(error => console.error('Error deleting the data:', error));
+  }
+</script>
+
+</body>
+</html>
